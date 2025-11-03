@@ -14,6 +14,7 @@
     "@chakra-ui/react": "^2.4.6",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@next/font": "13.1.1",
     "eslint": "8.30.0",
     "eslint-config-next": "^12.0.4",
