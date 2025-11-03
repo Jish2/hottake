@@ -21,12 +21,10 @@ import InfiniteScroll from "react-infinite-scroll-component";
 // prettier-ignore
 import { animateGreen, animateRed, scrollContainer, screenButtonContainer, createButton, sortText, relative } from "../../styles/Card.module.css";
 // Dependencies
-import { v4 as uuidv4 } from "uuid";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import ReactGA from "react-ga";
 
 import { useErrorToast } from "../../hooks/useErrorToast";
-
-import { getFingerprintId } from "../index";
 
 // Google Analytics ID
 const TRACKING_ID = "UA-253199381-1"; // OUR_TRACKING_ID
@@ -78,10 +76,9 @@ export default function Home({ queriedPost, id }) {
 
   async function fetchPosts(type) {
     try {
-      const fingerprintId = await getFingerprintId();
       const response = await fetch(`${API_URL}/posts?sort=${type}`, {
         headers: {
-          Authorization: `Basic ${btoa(fingerprintId)}`,
+          Authorization: `Basic ${btoa(uuid)}`,
         },
       });
       const results = await response.json();
@@ -106,6 +103,16 @@ export default function Home({ queriedPost, id }) {
 
     // Set UUID to fingerprint ID
     (async () => {
+      const getFingerprintId = async () => {
+        if (typeof window === "undefined") {
+          return null;
+        }
+        const fpPromise = FingerprintJS.load();
+        const fp = await fpPromise;
+        const result = await fp.get();
+        return result.visitorId;
+      };
+
       const fingerprintId = await getFingerprintId();
       setUUID(fingerprintId);
     })();
@@ -125,12 +132,11 @@ export default function Home({ queriedPost, id }) {
 
   async function loadMore() {
     try {
-      const fingerprintId = await getFingerprintId();
       const res = await fetch(
         `${API_URL}/posts?offset=${posts.length}&sort=${SORT_ICONS[sortMethod].name.toLowerCase()}`,
         {
           headers: {
-            Authorization: `Basic ${btoa(fingerprintId)}`,
+            Authorization: `Basic ${btoa(uuid)}`,
           },
         }
       );
