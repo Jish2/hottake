@@ -1,3 +1,4 @@
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import { useState, useRef, useEffect } from "react";
 // UI imports
 // prettier-ignore
@@ -22,6 +23,14 @@ import ReactGA from "react-ga";
 import { useErrorToast } from "../hooks/useErrorToast";
 
 import { env_url } from "/utils/api_url";
+
+const fpPromise = FingerprintJS.load();
+
+export const getFingerprintId = async () => {
+  const fp = await fpPromise;
+  const result = await fp.get();
+  return result.visitorId;
+};
 
 // Google Analytics ID
 const TRACKING_ID = "UA-253199381-1"; // OUR_TRACKING_ID
@@ -66,9 +75,10 @@ export default function Home() {
 
   async function fetchPosts(type) {
     try {
+      const fingerprintId = await getFingerprintId();
       const response = await fetch(`${API_URL}/posts?sort=${type}`, {
         headers: {
-          Authorization: `Basic ${btoa(localStorage.getItem("uuid"))}`,
+          Authorization: `Basic ${btoa(fingerprintId)}`,
         },
       });
       const results = await response.json();
@@ -91,25 +101,11 @@ export default function Home() {
     ReactGA.initialize(TRACKING_ID);
     ReactGA.pageview(window.location.pathname);
 
-    // Check if user has visited already
-    if (localStorage.getItem("uuid") == null) {
-      // If not, add UUID to local storage.
-      localStorage.setItem("uuid", uuidv4());
-      setUUID(localStorage.getItem("uuid"));
-    } else {
-      setUUID(localStorage.getItem("uuid"));
-    }
-
-    // if (localStorage.getItem("sort") == null) localStorage.setItem("sort", "0");
-    // setSortMethod(parseInt(localStorage.getItem("sort")));
-    // if (localStorage.getItem("sort") !== "0") {
-    // 	fetchPosts(SORT_ICONS[parseInt(localStorage.getItem("sort")) % SORT_ICONS.length].name.toLowerCase())
-    // 		.then((res) => setPosts(res))
-    // 		.catch((error) => {
-    // 			console.error(error);
-    // 			addToast(error?.response?.data || error.message);
-    // 		});
-    // }
+    // Set UUID to fingerprint ID
+    (async () => {
+      const fingerprintId = await getFingerprintId();
+      setUUID(fingerprintId);
+    })();
 
     (async () => {
       const res = await fetchPosts(SORT_ICONS[sortMethod].name.toLowerCase());
@@ -119,20 +115,17 @@ export default function Home() {
     setHasMorePosts(!(posts.length === 0));
   }, []);
 
-  // useEffect(() => {
-  // 	localStorage.setItem("sort", sortMethod);
-  // }, [sortMethod]);
-
   async function loadMore() {
     try {
       console.log("Loading");
+      const fingerprintId = await getFingerprintId();
       const res = await fetch(
         `${API_URL}/posts?offset=${posts.length}&sort=${SORT_ICONS[sortMethod].name.toLowerCase()}`,
         {
           headers: {
-            Authorization: `Basic ${btoa(localStorage.getItem("uuid"))}`,
+            Authorization: `Basic ${btoa(fingerprintId)}`,
           },
-        },
+        }
       );
       const loadedPosts = await res.json();
       if (loadedPosts.length == 0) {
@@ -177,7 +170,7 @@ export default function Home() {
             fetchPosts(
               SORT_ICONS[
                 (sortMethod + 1) % SORT_ICONS.length
-              ].name.toLowerCase(),
+              ].name.toLowerCase()
             )
               .then((res) => setPosts(res))
               .catch((error) => {
@@ -228,7 +221,7 @@ export default function Home() {
             {posts.map(
               (
                 post,
-                i, //TODO theres an error here...duplicate keys
+                i //TODO theres an error here...duplicate keys
               ) => (
                 <div key={`${post._id}${i}`} className={relative}>
                   {/* this is the left and right indicators */}
@@ -266,7 +259,7 @@ export default function Home() {
                     key={`${post._id}${i}`}
                   />
                 </div>
-              ),
+              )
             )}
           </div>
         </InfiniteScroll>
