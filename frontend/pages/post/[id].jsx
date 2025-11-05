@@ -21,7 +21,7 @@ import InfiniteScroll from "react-infinite-scroll-component";
 // prettier-ignore
 import { animateGreen, animateRed, scrollContainer, screenButtonContainer, createButton, sortText, relative } from "../../styles/Card.module.css";
 // Dependencies
-import { v4 as uuidv4 } from "uuid";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import ReactGA from "react-ga";
 
 import { useErrorToast } from "../../hooks/useErrorToast";
@@ -78,7 +78,7 @@ export default function Home({ queriedPost, id }) {
     try {
       const response = await fetch(`${API_URL}/posts?sort=${type}`, {
         headers: {
-          Authorization: `Basic ${btoa(localStorage.getItem("uuid"))}`,
+          Authorization: `Basic ${btoa(uuid)}`,
         },
       });
       const results = await response.json();
@@ -101,25 +101,21 @@ export default function Home({ queriedPost, id }) {
     ReactGA.initialize(TRACKING_ID);
     ReactGA.pageview(window.location.pathname);
 
-    // Check if user has visited already
-    if (localStorage.getItem("uuid") == null) {
-      // If not, add UUID to local storage.
-      localStorage.setItem("uuid", uuidv4());
-      setUUID(localStorage.getItem("uuid"));
-    } else {
-      setUUID(localStorage.getItem("uuid"));
-    }
+    // Set UUID to fingerprint ID
+    (async () => {
+      const getFingerprintId = async () => {
+        if (typeof window === "undefined") {
+          return null;
+        }
+        const fpPromise = FingerprintJS.load();
+        const fp = await fpPromise;
+        const result = await fp.get();
+        return result.visitorId;
+      };
 
-    // if (localStorage.getItem("sort") == null) localStorage.setItem("sort", "0");
-    // setSortMethod(parseInt(localStorage.getItem("sort")));
-    // if (localStorage.getItem("sort") !== "0") {
-    // 	fetchPosts(SORT_ICONS[parseInt(localStorage.getItem("sort")) % SORT_ICONS.length].name.toLowerCase())
-    // 		.then((res) => setPosts(res))
-    // 		.catch((error) => {
-    // 			console.error(error);
-    // 			addToast(error?.response?.data || error.message);
-    // 		});
-    // }
+      const fingerprintId = await getFingerprintId();
+      setUUID(fingerprintId);
+    })();
 
     (async () => {
       const res = await fetchPosts("hot");
@@ -140,9 +136,9 @@ export default function Home({ queriedPost, id }) {
         `${API_URL}/posts?offset=${posts.length}&sort=${SORT_ICONS[sortMethod].name.toLowerCase()}`,
         {
           headers: {
-            Authorization: `Basic ${btoa(localStorage.getItem("uuid"))}`,
+            Authorization: `Basic ${btoa(uuid)}`,
           },
-        },
+        }
       );
       const loadedPosts = await res.json();
       if (loadedPosts.length == 0) {
@@ -191,7 +187,7 @@ export default function Home({ queriedPost, id }) {
             fetchPosts(
               SORT_ICONS[
                 (sortMethod + 1) % SORT_ICONS.length
-              ].name.toLowerCase(),
+              ].name.toLowerCase()
             )
               .then((res) => setPosts(res))
               .catch((error) => {
